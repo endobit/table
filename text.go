@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/endobit/table.git/sgr"
+	"github.com/endobit/table/sgr"
 )
 
 type cell struct {

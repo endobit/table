@@ -3,8 +3,8 @@ package table_test
 import (
 	"testing"
 
-	"github.com/endobit/table.git"
-	"github.com/endobit/table.git/sgr"
+	"github.com/endobit/table"
+	"github.com/endobit/table/sgr"
 )
 
 type rank int

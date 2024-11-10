@@ -4,9 +4,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/endobit/table.git"
-	"github.com/endobit/table.git/sgr"
-	"github.com/endobit/table.git/sgr/color"
+	"github.com/endobit/table"
+	"github.com/endobit/table/sgr"
+	"github.com/endobit/table/sgr/color"
 )
 
 type rank int
