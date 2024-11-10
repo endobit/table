@@ -1,10 +1,10 @@
-module github.com/endobit/table.git
+module github.com/endobit/table
 
-go 1.19
-
-require gopkg.in/yaml.v3 v3.0.1
+go 1.23
 
 require (
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
+	golang.org/x/term v0.26.0
+	gopkg.in/yaml.v3 v3.0.1
 )
+
+require golang.org/x/sys v0.27.0 // indirect
