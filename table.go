@@ -37,11 +37,12 @@ type Colors struct {
 // Table holds a slice of structs that can be Flush()ed as a Text table, or
 // encoded as JSON or YAML.
 type Table struct {
-	rows    []any
-	colors  Colors
-	noColor bool
-	writer  io.Writer
-	style   style
+	rows         []any
+	colors       Colors
+	noColor      bool
+	writer       io.Writer
+	style        style
+	fieldToLabel func(string) string
 }
 
 // WithColor is an option setting function for New. It replaces the default set
@@ -60,6 +61,16 @@ func WithWriter(w io.Writer) func(*Table) {
 	}
 }
 
+// WithLableFunction is an option setting function for New. This function
+// convert struct field names into text header labels. The default behavior is
+// to convert the CamelCase field names into UPPER_CASE labels. The "table"
+// struct tags can be used to override this.
+func WithLabelFunction(fn func(string) string) func(*Table) {
+	return func(t *Table) {
+		t.fieldToLabel = fn
+	}
+}
+
 // New returns a new Table. The default settings can be overridden using the
 // With* options setting functions. For example: WithColors() can be used to
 // replace the default coloring scheme.
@@ -71,6 +82,7 @@ func New(opts ...func(*Table)) *Table {
 			Empty:  []sgr.Param{sgr.Faint},
 			Repeat: []sgr.Param{sgr.Faint},
 		},
+		fieldToLabel: camelToUpper,
 	}
 
 	for _, o := range opts {

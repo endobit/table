@@ -1,6 +1,6 @@
 package table
 
-import "gopkg.in/yaml.v3"
+import "github.com/goccy/go-yaml"
 
 // NewYAML returns a Table with YAML as the default for `Flush`.
 func NewYAML(opts ...func(*Table)) *Table {
