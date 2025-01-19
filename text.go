@@ -52,7 +52,7 @@ func (t *Table) FlushText() {
 
 			for i := 0; i < numFields; i++ {
 				f := currType.Field(i)
-				column[i] = columnInfo{Label: f.Name, Width: len(f.Name)}
+				column[i] = columnInfo{Label: t.fieldToLabel(f.Name), Width: len(f.Name)}
 
 				if tag := f.Tag.Get("table"); tag != "" {
 					label, opts := parseTag(tag)
@@ -170,6 +170,25 @@ func (t *Table) flushHeader(c []columnInfo, r [][]cell) {
 	}
 
 	fmt.Fprintln(t.writer)
+}
+
+func camelToUpper(s string) string {
+	var b strings.Builder
+
+	if s == strings.ToUpper(s) { // already uppercase (e.g. "ID")
+		return s
+	}
+
+	for i := 0; i < len(s); i++ {
+		if i > 0 && 'A' <= s[i] && s[i] <= 'Z' {
+			b.WriteByte('_')
+		}
+
+		b.WriteByte(s[i])
+	}
+
+	return strings.ToUpper(b.String())
+
 }
 
 func repeats(top, bottom []cell) []bool {
