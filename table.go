@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/endobit/table/sgr"
+	"endobit.io/table/sgr"
 )
 
 // ErrNotStruct is returned from a Table's Write method if the argument is not a

@@ -9,7 +9,7 @@
 package color
 
 import (
-	"github.com/endobit/table/sgr"
+	"endobit.io/table/sgr"
 )
 
 // Standard ANSI foreground and background colors.
