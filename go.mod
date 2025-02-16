@@ -1,4 +1,4 @@
-module github.com/endobit/table
+module endobit.io/table
 
 go 1.23
 
