@@ -47,9 +47,11 @@ type Table struct {
 
 // WithColor is an option setting function for New. It replaces the default set
 // of Colors with c.
-func WithColor(c Colors) func(*Table) {
+func WithColor(c *Colors) func(*Table) {
 	return func(t *Table) {
-		t.colors = c
+		if c == nil {
+			t.colors = *c
+		}
 	}
 }
 
