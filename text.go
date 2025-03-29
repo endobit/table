@@ -50,15 +50,17 @@ func (t *Table) FlushText() {
 
 			column = make([]columnInfo, numFields)
 
-			for i := 0; i < numFields; i++ {
+			for i := range numFields {
 				f := currType.Field(i)
 				column[i] = columnInfo{Label: t.fieldToLabel(f.Name), Width: len(f.Name)}
 
 				if tag := f.Tag.Get("table"); tag != "" {
 					label, opts := parseTag(tag)
 
-					column[i].Label = label
-					column[i].Width = len(label)
+					if label != "" {
+						column[i].Label = label
+						column[i].Width = len(label)
+					}
 					column[i].OmitEmpty = opts.Contains("omitempty")
 				}
 			}
@@ -66,7 +68,7 @@ func (t *Table) FlushText() {
 
 		row := make([]cell, numFields)
 
-		for j := 0; j < numFields; j++ {
+		for j := range numFields {
 			v := val.Field(j)
 			cell := cell{
 				Text:  v.String(), // cache it
@@ -179,7 +181,7 @@ func camelToUpper(s string) string {
 		return s
 	}
 
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if i > 0 && 'A' <= s[i] && s[i] <= 'Z' {
 			b.WriteByte('_')
 		}
@@ -199,11 +201,7 @@ func repeats(top, bottom []cell) []bool {
 	}
 
 	for i := range bottom {
-		if top[i].Text != bottom[i].Text {
-			break
-		}
-
-		r[i] = true
+		r[i] = top[i].Text == bottom[i].Text
 	}
 
 	return r
