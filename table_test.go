@@ -22,7 +22,7 @@ type host struct {
 	Slot    int    `table:"SLOT,omitempty"`
 }
 
-func TestYAML(t *testing.T) {
+func TestYAML(_ *testing.T) {
 	w := table.New()
 	_ = w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-0", Rack: "0", Rank: 0})
 	_ = w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-1", Rack: "0", Rank: 1})
