@@ -14,7 +14,7 @@ type cell struct {
 }
 
 type columnInfo struct {
-	Label     string
+	Labels    []string
 	Width     int
 	OmitEmpty bool
 	IsZero    bool
@@ -30,56 +30,46 @@ type wrapper interface {
 func (t *Table) FlushText() {
 	var (
 		prevType reflect.Type
-		column   []columnInfo
+		columns  []columnInfo
+		cells    [][]cell
 	)
 
-	rows := make([][]cell, 0, len(t.rows))
+	// This is the first pass through the table to determine the column widths
+	// and cell contents. ANSI formatting is not part of this pass.
 
 	for i := range t.rows {
 		val := reflect.ValueOf(t.rows[i])
-		numFields := val.NumField()
 		currType := reflect.TypeOf(t.rows[i])
 
 		if currType != prevType { // start a new table
 			prevType = currType
 
-			if column != nil {
-				t.flush(column, rows)
-				rows = nil // flush and reset for next table
+			if columns != nil { // flush and reset for next table
+				t.flush(columns, cells)
+				cells = nil
 			}
 
-			column = make([]columnInfo, numFields)
-
-			for i := range numFields {
-				f := currType.Field(i)
-				column[i] = columnInfo{Label: t.fieldToLabel(f.Name), Width: len(f.Name)}
-
-				if tag := f.Tag.Get("table"); tag != "" {
-					label, opts := parseTag(tag)
-
-					if label != "" {
-						column[i].Label = label
-						column[i].Width = len(label)
-					}
-					column[i].OmitEmpty = opts.Contains("omitempty")
-				}
-			}
+			columns = t.processHeader(currType)
 		}
 
-		row := make([]cell, numFields)
+		numFields := val.NumField()
+		fields := make([]cell, numFields)
 
 		for j := range numFields {
-			v := val.Field(j)
+			value := val.Field(j)
 			cell := cell{
-				Text:  v.String(), // cache it
-				Value: v,
+				Text:  valueAsString(value), // cache it
+				Value: value,
 			}
 
 			length := len(cell.Text)
 
-			if v.CanInterface() {
-				if a, ok := v.Interface().(wrapper); ok {
+			// If the value is a wrapper, use its Wrap() method to get the text
+			// and its length.
+			if value.CanInterface() {
+				if a, ok := value.Interface().(wrapper); ok {
 					w := a.Wrap()
+
 					length = len(w.Text)
 					if t.noColor {
 						cell.Text = w.Text
@@ -87,69 +77,72 @@ func (t *Table) FlushText() {
 				}
 			}
 
-			if length > column[j].Width {
-				column[j].Width = length
+			if length > columns[j].Width {
+				columns[j].Width = length
 			}
 
-			row[j] = cell
+			fields[j] = cell
 		}
 
-		rows = append(rows, row)
+		cells = append(cells, fields)
 	}
 
-	t.flush(column, rows)
+	t.flush(columns, cells)
 }
 
-func (t *Table) flush(c []columnInfo, r [][]cell) {
-	t.flushHeader(c, r)
+func (t *Table) flush(info []columnInfo, rows [][]cell) {
+	t.flushHeader(info, rows)
 
-	for i := range r {
-		var reps []bool
+	annotations := t.annotations
 
-		if i > 0 {
-			reps = repeats(r[i-1], r[i])
-		} else {
-			reps = repeats(nil, r[i])
+	// This pass applies ANSI styles and prints the table rows.
+
+	for i := range rows {
+		if len(annotations) > 0 && annotations[0].index == i {
+			fmt.Fprintln(t.writer, sgr.Wrap(t.colors.Annotation, annotations[0].text))
+			annotations = annotations[1:] // remove the annotation
 		}
 
-		for j := range r[i] {
-			if c[j].IsZero {
+		var repeats []bool
+
+		if i == 0 {
+			repeats = make([]bool, len(rows[i]))
+		} else {
+			repeats = findRepeats(rows[i-1], rows[i])
+		}
+
+		for j := range rows[i] {
+			if info[j].IsZero { // skip empty columns TODO: make this configurable
 				continue
 			}
-
-			isRepeat := reps[j]
 
 			rowColor := t.colors.EvenRow
 			if i%2 != 0 {
 				rowColor = t.colors.OddRow
 			}
 
-			cell := r[i][j]
-			pad := c[j].Width - len(cell.Text)
-			s := cell.Text
+			cell := rows[i][j]
+			text := cell.Text
 
 			if !t.noColor && cell.Value.CanInterface() {
 				if a, ok := cell.Value.Interface().(wrapper); ok {
-					s = a.Wrap().String()
+					text = a.Wrap().String()
 				}
 			}
 
+			padding := strings.Repeat(" ", info[j].Width-len(cell.Text))
+
 			switch {
 			case cell.Text == "":
-				s = sgr.Wrap(t.colors.Empty, strings.Repeat("-", len(c[j].Label))).String()
-				pad = c[j].Width - len(c[j].Label)
-			case isRepeat:
-				s = sgr.Wrap(t.colors.Repeat, s).String()
+				text = sgr.Wrap(t.colors.Empty, strings.Repeat("-", info[j].Width)).String()
+				padding = ""
+			case repeats[j]:
+				text = sgr.Wrap(t.colors.Repeat, text).String()
 			}
 
-			spaces := ""
-			if pad > 0 {
-				spaces = strings.Repeat(" ", pad)
-			}
+			fmt.Fprint(t.writer, sgr.Wrap(rowColor, text, padding))
 
-			fmt.Fprint(t.writer, sgr.Wrap(rowColor, s, spaces))
-
-			if j != len(r[i])-1 {
+			if j != len(rows[i])-1 { // skip column separator for the last column
 				fmt.Fprint(t.writer, " ")
 			}
 		}
@@ -158,42 +151,81 @@ func (t *Table) flush(c []columnInfo, r [][]cell) {
 	}
 }
 
-func (t *Table) flushHeader(c []columnInfo, r [][]cell) {
-	for i := range c { // header
-		if c[i].OmitEmpty && isColumnZero(i, r) {
-			c[i].IsZero = true
-			continue
+func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
+	var numLines int
+
+	// header can have multiple lines (useful for specifying units)
+	// column with the most lines determines the size of the header
+	for _, c := range info {
+		if len(c.Labels) > numLines {
+			numLines = len(c.Labels)
+		}
+	}
+
+	for i := range numLines {
+		if i > 0 {
+			fmt.Fprintln(t.writer)
 		}
 
-		fmt.Fprint(t.writer, sgr.Wrapf(t.colors.Header, "%-*s", c[i].Width, c[i].Label))
-		if i != len(c)-1 {
-			fmt.Fprint(t.writer, " ")
+		for j := range info { // header
+			var label string
+
+			if info[j].OmitEmpty && isColumnZero(j, rows) {
+				info[j].IsZero = true
+
+				continue
+			}
+
+			if i < len(info[j].Labels) {
+				label = info[j].Labels[i]
+			}
+
+			fmt.Fprint(t.writer, sgr.Wrapf(t.colors.Header, "%-*s", info[j].Width, label))
+
+			if j != len(info)-1 {
+				fmt.Fprint(t.writer, " ")
+			}
 		}
 	}
 
 	fmt.Fprintln(t.writer)
 }
 
-func camelToUpper(s string) string {
-	var b strings.Builder
+func (t *Table) processHeader(header reflect.Type) []columnInfo {
+	numFields := header.NumField()
 
-	if s == strings.ToUpper(s) { // already uppercase (e.g. "ID")
-		return s
-	}
+	columns := make([]columnInfo, numFields)
 
-	for i := range len(s) {
-		if i > 0 && 'A' <= s[i] && s[i] <= 'Z' {
-			b.WriteByte('_')
+	for i := range numFields {
+		field := header.Field(i)
+		label := t.fieldToLabel(field.Name)
+
+		columns[i] = columnInfo{
+			Labels: []string{label},
+			Width:  len(label),
 		}
 
-		b.WriteByte(s[i])
+		if tag := field.Tag.Get("table"); tag != "" {
+			label, opts := parseTag(tag)
+
+			if label != "" {
+				labels := strings.Split(label, "\n")
+				if labels[0] == "" { // use the default label if empty
+					labels[0] = columns[i].Labels[0]
+				}
+
+				columns[i].Labels = labels
+				columns[i].Width = maxStringLength(labels)
+			}
+
+			columns[i].OmitEmpty = opts.Contains("omitempty")
+		}
 	}
 
-	return strings.ToUpper(b.String())
-
+	return columns
 }
 
-func repeats(top, bottom []cell) []bool {
+func findRepeats(top, bottom []cell) []bool {
 	r := make([]bool, len(bottom))
 
 	if top == nil || len(top) != len(bottom) {
@@ -207,9 +239,9 @@ func repeats(top, bottom []cell) []bool {
 	return r
 }
 
-func isColumnZero(n int, r [][]cell) bool {
-	for i := range r {
-		if !r[i][n].Value.IsZero() {
+func isColumnZero(n int, rows [][]cell) bool {
+	for i := range rows {
+		if !rows[i][n].Value.IsZero() {
 			return false
 		}
 	}

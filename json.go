@@ -6,6 +6,7 @@ import "encoding/json"
 func NewJSON(opts ...func(*Table)) *Table {
 	t := New(opts...)
 	t.style = jsonOutput
+
 	return t
 }
 
@@ -13,5 +14,6 @@ func NewJSON(opts ...func(*Table)) *Table {
 func (t *Table) FlushJSON() error {
 	e := json.NewEncoder(t.writer)
 	e.SetIndent("", "    ")
+
 	return e.Encode(t.rows)
 }

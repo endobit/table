@@ -4,9 +4,13 @@ package table
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/term"
 
@@ -27,22 +31,29 @@ const (
 
 // Colors is the set styles/colors to be applied to Table elements.
 type Colors struct {
-	Header  []sgr.Param
-	EvenRow []sgr.Param
-	OddRow  []sgr.Param
-	Empty   []sgr.Param
-	Repeat  []sgr.Param
+	Header     []sgr.Param
+	EvenRow    []sgr.Param
+	OddRow     []sgr.Param
+	Empty      []sgr.Param
+	Repeat     []sgr.Param
+	Annotation []sgr.Param
 }
 
 // Table holds a slice of structs that can be Flush()ed as a Text table, or
 // encoded as JSON or YAML.
 type Table struct {
 	rows         []any
+	annotations  []annotation
 	colors       Colors
 	noColor      bool
 	writer       io.Writer
 	style        style
 	fieldToLabel func(string) string
+}
+
+type annotation struct {
+	index int
+	text  string
 }
 
 // WithColor is an option setting function for New. It replaces the default set
@@ -63,7 +74,7 @@ func WithWriter(w io.Writer) func(*Table) {
 	}
 }
 
-// WithLableFunction is an option setting function for New. This function
+// WithLabelFunction is an option setting function for New. This function
 // convert struct field names into text header labels. The default behavior is
 // to convert the CamelCase field names into UPPER_CASE labels. The "table"
 // struct tags can be used to override this.
@@ -80,11 +91,12 @@ func New(opts ...func(*Table)) *Table {
 	t := Table{
 		writer: os.Stdout,
 		colors: Colors{
-			Header: []sgr.Param{sgr.Underline, sgr.Bold},
-			Empty:  []sgr.Param{sgr.Faint},
-			Repeat: []sgr.Param{sgr.Faint},
+			Header:     []sgr.Param{sgr.Underline, sgr.Bold},
+			Empty:      []sgr.Param{sgr.Faint},
+			Repeat:     []sgr.Param{sgr.Faint},
+			Annotation: []sgr.Param{sgr.Italic},
 		},
-		fieldToLabel: camelToUpper,
+		fieldToLabel: camelToUpperSnake,
 	}
 
 	for _, o := range opts {
@@ -99,16 +111,42 @@ func New(opts ...func(*Table)) *Table {
 	return &t
 }
 
-// Write appends the struct a to the table as a row. It is not an error to Write
-// different struct types to the same table.
-func (t *Table) Write(a any) error {
+// Write appends the struct a to the table as a row. The current table will be
+// flushed if a new struct type is written. If a is not a struct, an error table
+// will be added to the output.
+func (t *Table) Write(a any) {
 	if reflect.TypeOf(a).Kind() != reflect.Struct {
-		return ErrNotStruct
+		msg := struct {
+			Error error
+			Type  string
+			Value string
+		}{
+			Error: ErrNotStruct,
+			Type:  fmt.Sprintf("%T", a),
+			Value: valueAsString(reflect.ValueOf(a)),
+		}
+
+		t.rows = append(t.rows, msg)
+
+		t.Annotate(fmt.Sprintf("skipping non-struct type: %T", a))
+
+		return
 	}
 
 	t.rows = append(t.rows, a)
+}
 
-	return nil
+// Annotate inserts a string into the table as a row. This is useful for
+// inserting comments or other information that is not a struct. The string will
+// be printed as-is, without any formatting or coloring.
+//
+// Annotations are only used in text output, and are ignored in JSON or YAML
+// formats.
+func (t *Table) Annotate(s string) {
+	t.annotations = append(t.annotations, annotation{
+		index: len(t.rows),
+		text:  s,
+	})
 }
 
 // Flush writes the table to its writer in its default style.
@@ -132,4 +170,49 @@ func isTerminal(w io.Writer) bool {
 	}
 
 	return term.IsTerminal(int(f.Fd()))
+}
+
+func maxStringLength(list []string) int {
+	maxLen := 0
+	for _, s := range list {
+		if l := utf8.RuneCountInString(s); l > maxLen {
+			maxLen = l
+		}
+	}
+
+	return maxLen
+}
+
+func valueAsString(v reflect.Value) string {
+	if v.IsValid() && v.CanInterface() {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+
+	return ""
+}
+
+// camelToUpperSnake converts a CamelCase string to UPPERCASE_SNAKE_CASE,
+// supporting Unicode letters.
+func camelToUpperSnake(s string) string {
+	var (
+		b    strings.Builder
+		prev rune
+	)
+
+	for i, r := range s {
+		if i > 0 {
+			// Insert underscore if:
+			// 1. transition from lower to upper (e.g., "camelCase")
+			// 2. transition from letter followed by upper+lower (e.g., "URLValue" -> "URL_Value")
+			if unicode.IsLower(prev) && unicode.IsUpper(r) ||
+				unicode.IsUpper(prev) && unicode.IsUpper(r) && i+1 < len(s) && unicode.IsLower(rune(s[i+1])) {
+				b.WriteRune('_')
+			}
+		}
+
+		b.WriteRune(unicode.ToUpper(r))
+		prev = r
+	}
+
+	return b.String()
 }
