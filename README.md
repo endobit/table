@@ -1,0 +1,5 @@
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/endobit/table/test.yaml)](https://github.com/endobit/table/actions?query=workflow%3Atest)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/endobit/table)](https://img.shields.io/github/go-mod/go-version/endobit/table)
+[![Go Report Card](https://goreportcard.com/badge/github.com/endobit/table)](https://goreportcard.com/report/endobit.io/table)
+[![Codecov](https://codecov.io/gh/endobit/oui/branch/main/graph/badge.svg)](https://codecov.io/gh/endobit/table)
+[![Go Reference](https://pkg.go.dev/badge/github.com/endobit/table.svg)](https://pkg.go.dev/endobit.io/table)
