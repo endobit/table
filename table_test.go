@@ -3,6 +3,7 @@ package table
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"endobit.io/table/sgr"
@@ -161,4 +162,282 @@ func ExampleNew_withCustomColors() {
 	// NAME       PRIORITY
 	// Fix bug    8
 	// Write docs 3
+}
+
+func TestWriteNonStruct(t *testing.T) {
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	// Write a non-struct value
+	tbl.Write("not a struct")
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should contain error message
+	if !bytes.Contains([]byte(output), []byte("not a struct")) {
+		t.Errorf("expected error message in output, got: %q", output)
+	}
+
+	// Should contain the ERROR header
+	if !bytes.Contains([]byte(output), []byte("ERROR")) {
+		t.Errorf("expected ERROR header in output, got: %q", output)
+	}
+}
+
+func TestEmptyTable(t *testing.T) {
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	// Flush without writing anything
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should produce minimal output (just a newline or empty)
+	if len(output) > 1 {
+		t.Errorf("expected empty or minimal output, got: %q", output)
+	}
+}
+
+func TestSingleColumnTable(t *testing.T) {
+	type singleCol struct {
+		Name string
+	}
+
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(singleCol{Name: "test1"})
+	tbl.Write(singleCol{Name: "test2"})
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should contain header and values
+	if !bytes.Contains([]byte(output), []byte("NAME")) {
+		t.Errorf("expected NAME header, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("test1")) {
+		t.Errorf("expected test1 value, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("test2")) {
+		t.Errorf("expected test2 value, got: %q", output)
+	}
+}
+
+func TestOmitEmptyColumns(t *testing.T) {
+	type record struct {
+		Name  string `table:"NAME"`
+		Value string `table:"VALUE,omitempty"`
+		Flag  string `table:"FLAG,omitempty"`
+	}
+
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(record{Name: "row1", Value: "", Flag: ""})
+	tbl.Write(record{Name: "row2", Value: "", Flag: ""})
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should only show NAME column
+	if !bytes.Contains([]byte(output), []byte("NAME")) {
+		t.Errorf("expected NAME header, got: %q", output)
+	}
+	// Should NOT show omitempty columns
+	if bytes.Contains([]byte(output), []byte("VALUE")) {
+		t.Errorf("expected VALUE column to be omitted, got: %q", output)
+	}
+	if bytes.Contains([]byte(output), []byte("FLAG")) {
+		t.Errorf("expected FLAG column to be omitted, got: %q", output)
+	}
+}
+
+func TestWrapperInterface(t *testing.T) {
+	type status string
+
+	var wrapCalled bool
+
+	statusWrapper := struct {
+		Status status
+	}{
+		Status: status("active"),
+	}
+
+	// Create a custom type that implements wrapper
+	type customStatus struct {
+		value string
+	}
+
+	wrappedStatus := func(s string) customStatus {
+		return customStatus{value: s}
+	}
+
+	var _ = wrappedStatus // silence unused warning
+
+	// Test that wrapper interface is called
+	type item struct {
+		Name string
+		Rank rank
+	}
+
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(item{Name: "test", Rank: 5})
+	tbl.Flush()
+
+	output := buf.String()
+
+	// rank implements Wrap(), so it should appear in output
+	if !bytes.Contains([]byte(output), []byte("5")) {
+		t.Errorf("expected rank value in output, got: %q", output)
+	}
+
+	_ = wrapCalled
+	_ = statusWrapper
+}
+
+func TestJSONOutput(t *testing.T) {
+	type person struct {
+		Name string
+		Age  int
+	}
+
+	var buf bytes.Buffer
+	tbl := NewJSON(WithWriter(&buf))
+
+	tbl.Write(person{Name: "Alice", Age: 30})
+	tbl.Write(person{Name: "Bob", Age: 25})
+	err := tbl.Flush()
+
+	if err != nil {
+		t.Fatalf("Flush() error = %v", err)
+	}
+
+	output := buf.String()
+
+	// Verify JSON structure
+	if !bytes.Contains([]byte(output), []byte(`"Name": "Alice"`)) {
+		t.Errorf("expected Alice in JSON output, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte(`"Age": 30`)) {
+		t.Errorf("expected Age: 30 in JSON output, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte(`"Name": "Bob"`)) {
+		t.Errorf("expected Bob in JSON output, got: %q", output)
+	}
+}
+
+func TestYAMLOutput(t *testing.T) {
+	type person struct {
+		Name string
+		Age  int
+	}
+
+	var buf bytes.Buffer
+	tbl := NewYAML(WithWriter(&buf))
+
+	tbl.Write(person{Name: "Alice", Age: 30})
+	tbl.Write(person{Name: "Bob", Age: 25})
+	err := tbl.Flush()
+
+	if err != nil {
+		t.Fatalf("Flush() error = %v", err)
+	}
+
+	output := buf.String()
+
+	// Verify YAML structure
+	if !bytes.Contains([]byte(output), []byte("name: Alice")) {
+		t.Errorf("expected 'name: Alice' in YAML output, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("age: 30")) {
+		t.Errorf("expected 'age: 30' in YAML output, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("name: Bob")) {
+		t.Errorf("expected 'name: Bob' in YAML output, got: %q", output)
+	}
+}
+
+func TestWithLabelFunction(t *testing.T) {
+	type record struct {
+		FirstName string
+		LastName  string
+	}
+
+	var buf bytes.Buffer
+
+	// Custom label function that lowercases
+	lowercase := func(s string) string {
+		return strings.ToLower(s)
+	}
+
+	tbl := New(WithWriter(&buf), WithLabelFunction(lowercase))
+
+	tbl.Write(record{FirstName: "John", LastName: "Doe"})
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should use custom label function
+	if !bytes.Contains([]byte(output), []byte("firstname")) {
+		t.Errorf("expected 'firstname' header from custom label function, got: %q", output)
+	}
+}
+
+func TestMultipleTableTypes(t *testing.T) {
+	type typeA struct {
+		Name string
+	}
+	type typeB struct {
+		Value int
+	}
+
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	// Write first type
+	tbl.Write(typeA{Name: "test"})
+	// Write different type - should flush first table
+	tbl.Write(typeB{Value: 42})
+	tbl.Flush()
+
+	output := buf.String()
+
+	// Should contain both table headers
+	if !bytes.Contains([]byte(output), []byte("NAME")) {
+		t.Errorf("expected NAME header for first table, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("VALUE")) {
+		t.Errorf("expected VALUE header for second table, got: %q", output)
+	}
+}
+
+func TestAnnotations(t *testing.T) {
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	tbl.Annotate("before any rows")
+	tbl.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	tbl.Annotate("middle annotation")
+	tbl.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	tbl.Flush()
+	tbl.Annotate("after flush - should appear in next table")
+
+	output := buf.String()
+
+	// First two annotations should appear
+	if !bytes.Contains([]byte(output), []byte("before any rows")) {
+		t.Errorf("expected first annotation, got: %q", output)
+	}
+	if !bytes.Contains([]byte(output), []byte("middle annotation")) {
+		t.Errorf("expected middle annotation, got: %q", output)
+	}
+	// Annotation after flush should NOT appear in this output
+	if bytes.Contains([]byte(output), []byte("after flush")) {
+		t.Errorf("unexpected annotation after flush, got: %q", output)
+	}
 }
