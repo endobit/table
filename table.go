@@ -1,4 +1,4 @@
-// Package table implements a row-based data set that can the printed with a
+// Package table implements a row-based data set that can be printed with a
 // header and space aligned columns. The text output looks like a spreadsheet.
 package table
 
@@ -60,7 +60,7 @@ type annotation struct {
 // of Colors with c.
 func WithColor(c *Colors) func(*Table) {
 	return func(t *Table) {
-		if c == nil {
+		if c != nil {
 			t.colors = *c
 		}
 	}
