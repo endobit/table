@@ -84,3 +84,9 @@ func init() {
 		noColor = true
 	}
 }
+
+// DisableColor disables all SGR color output. This is useful for testing.
+func DisableColor() {
+	noColor = true
+	resetString = ""
+}

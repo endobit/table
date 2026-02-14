@@ -1,10 +1,18 @@
 package table
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
 	"endobit.io/table/sgr"
+	"endobit.io/table/sgr/color"
 )
+
+func init() {
+	// Disable colors for reproducible example output
+	sgr.DisableColor()
+}
 
 type rank int
 
@@ -56,3 +64,114 @@ func TestCamelToUpperSnake(t *testing.T) {
 		})
 	}
 }
+
+type server struct {
+	Name   string
+	Status string
+	Port   int
+}
+
+func ExampleTable_Write() {
+	var buf bytes.Buffer
+	t := New(WithWriter(&buf))
+
+	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Flush()
+
+	// Trim trailing spaces from each line for cleaner output
+	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
+	for _, line := range lines {
+		fmt.Println(string(bytes.TrimRight(line, " ")))
+	}
+	// Output:
+	// NAME  STATUS  PORT
+	// web-1 running 8080
+	// web-2 stopped 8081
+	//
+}
+
+func ExampleTable_Annotate() {
+	var buf bytes.Buffer
+	t := New(WithWriter(&buf))
+
+	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Annotate("--- maintenance window ---")
+	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Flush()
+
+	// Trim trailing spaces from each line for cleaner output
+	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
+	for _, line := range lines {
+		fmt.Println(string(bytes.TrimRight(line, " ")))
+	}
+	// Output:
+	// NAME  STATUS  PORT
+	// web-1 running 8080
+	// --- maintenance window ---
+	// web-2 stopped 8081
+	//
+}
+
+func ExampleNewJSON() {
+	var buf bytes.Buffer
+	t := NewJSON(WithWriter(&buf))
+
+	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Flush()
+
+	fmt.Print(buf.String())
+	// Output:
+	// [
+	//     {
+	//         "Name": "web-1",
+	//         "Status": "running",
+	//         "Port": 8080
+	//     },
+	//     {
+	//         "Name": "web-2",
+	//         "Status": "stopped",
+	//         "Port": 8081
+	//     }
+	// ]
+}
+
+type priority int
+
+func (p priority) Wrap() sgr.Wrapped {
+	if p > 5 {
+		return sgr.Wrap(append(color.Red, sgr.Bold), p)
+	}
+	return sgr.Wrap(color.Green, p)
+}
+
+type task struct {
+	Name     string
+	Priority priority
+}
+
+func ExampleNew_withCustomColors() {
+	var buf bytes.Buffer
+	t := New(WithWriter(&buf), WithColor(&Colors{
+		Header: append([]sgr.Param{sgr.Bold}, color.Cyan...),
+	}))
+
+	t.Write(task{Name: "Fix bug", Priority: 8})
+	t.Write(task{Name: "Write docs", Priority: 3})
+	t.Flush()
+
+	// Trim trailing spaces from each line for cleaner output
+	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
+	for i, line := range lines {
+		fmt.Println(string(bytes.TrimRight(line, " ")))
+		if i < len(lines)-1 && len(line) > 0 {
+			// Don't print extra newline after last line
+		}
+	}
+	// Output:
+	// NAME       PRIORITY
+	// Fix bug    8
+	// Write docs 3
+}
+
