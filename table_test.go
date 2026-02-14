@@ -73,11 +73,12 @@ type server struct {
 
 func ExampleTable_Write() {
 	var buf bytes.Buffer
+
 	t := New(WithWriter(&buf))
 
 	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
 	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
-	t.Flush()
+	_ = t.Flush()
 
 	fmt.Print(buf.String())
 	// Output:
@@ -88,12 +89,13 @@ func ExampleTable_Write() {
 
 func ExampleTable_Annotate() {
 	var buf bytes.Buffer
+
 	t := New(WithWriter(&buf))
 
 	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
 	t.Annotate("--- maintenance window ---")
 	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
-	t.Flush()
+	_ = t.Flush()
 
 	fmt.Print(buf.String())
 	// Output:
@@ -105,11 +107,12 @@ func ExampleTable_Annotate() {
 
 func ExampleNewJSON() {
 	var buf bytes.Buffer
+
 	t := NewJSON(WithWriter(&buf))
 
 	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
 	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
-	t.Flush()
+	_ = t.Flush()
 
 	fmt.Print(buf.String())
 	// Output:
@@ -133,6 +136,7 @@ func (p priority) Wrap() sgr.Wrapped {
 	if p > 5 {
 		return sgr.Wrap(append(color.Red, sgr.Bold), p)
 	}
+
 	return sgr.Wrap(color.Green, p)
 }
 
@@ -143,13 +147,14 @@ type task struct {
 
 func ExampleNew_withCustomColors() {
 	var buf bytes.Buffer
+
 	t := New(WithWriter(&buf), WithColor(&Colors{
 		Header: append([]sgr.Param{sgr.Bold}, color.Cyan...),
 	}))
 
 	t.Write(task{Name: "Fix bug", Priority: 8})
 	t.Write(task{Name: "Write docs", Priority: 3})
-	t.Flush()
+	_ = t.Flush()
 
 	fmt.Print(buf.String())
 	// Output:
