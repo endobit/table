@@ -136,6 +136,14 @@ func (t *Table) Write(a any) {
 	t.rows = append(t.rows, a)
 }
 
+// Clear removes all rows and annotations from the table, allowing it to be
+// reused. Configuration settings (colors, writer, style, label function) are
+// preserved.
+func (t *Table) Clear() {
+	t.rows = nil
+	t.annotations = nil
+}
+
 // Annotate inserts a string into the table as a row. This is useful for
 // inserting comments or other information that is not a struct. The string will
 // be printed as-is, without any formatting or coloring.

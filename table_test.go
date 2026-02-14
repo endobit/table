@@ -164,6 +164,31 @@ func ExampleNew_withCustomColors() {
 	// Write docs 3
 }
 
+func ExampleTable_Clear() {
+	var buf bytes.Buffer
+	t := New(WithWriter(&buf))
+
+	// First batch of data
+	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Flush()
+	fmt.Print(buf.String())
+
+	// Clear and reuse the same table
+	buf.Reset()
+	t.Clear()
+
+	// Second batch of data
+	t.Write(server{Name: "api-1", Status: "running", Port: 9000})
+	t.Flush()
+	fmt.Print(buf.String())
+
+	// Output:
+	// NAME  STATUS  PORT
+	// web-1 running 8080
+	// NAME  STATUS  PORT
+	// api-1 running 9000
+}
+
 func TestWriteNonStruct(t *testing.T) {
 	var buf bytes.Buffer
 	tbl := New(WithWriter(&buf))
@@ -439,5 +464,90 @@ func TestAnnotations(t *testing.T) {
 	// Annotation after flush should NOT appear in this output
 	if bytes.Contains([]byte(output), []byte("after flush")) {
 		t.Errorf("unexpected annotation after flush, got: %q", output)
+	}
+}
+
+func TestClear(t *testing.T) {
+	var buf bytes.Buffer
+	tbl := New(WithWriter(&buf))
+
+	// Write some data
+	tbl.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	tbl.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	tbl.Annotate("test annotation")
+	tbl.Flush()
+
+	firstOutput := buf.String()
+
+	// Should contain data
+	if !bytes.Contains([]byte(firstOutput), []byte("web-1")) {
+		t.Errorf("expected web-1 in first output, got: %q", firstOutput)
+	}
+
+	// Clear the table
+	buf.Reset()
+	tbl.Clear()
+
+	// Write new data
+	tbl.Write(server{Name: "api-1", Status: "running", Port: 9000})
+	tbl.Flush()
+
+	secondOutput := buf.String()
+
+	// Should contain new data
+	if !bytes.Contains([]byte(secondOutput), []byte("api-1")) {
+		t.Errorf("expected api-1 in second output, got: %q", secondOutput)
+	}
+
+	// Should NOT contain old data
+	if bytes.Contains([]byte(secondOutput), []byte("web-1")) {
+		t.Errorf("unexpected web-1 in second output after Clear, got: %q", secondOutput)
+	}
+
+	// Should NOT contain old annotation
+	if bytes.Contains([]byte(secondOutput), []byte("test annotation")) {
+		t.Errorf("unexpected annotation in second output after Clear, got: %q", secondOutput)
+	}
+}
+
+func TestClearPreservesConfiguration(t *testing.T) {
+	var buf bytes.Buffer
+
+	customColors := &Colors{
+		Header: []sgr.Param{sgr.Bold},
+	}
+
+	lowercase := func(s string) string {
+		return strings.ToLower(s)
+	}
+
+	tbl := New(
+		WithWriter(&buf),
+		WithColor(customColors),
+		WithLabelFunction(lowercase),
+	)
+
+	// Write and flush
+	tbl.Write(server{Name: "test", Status: "ok", Port: 80})
+	tbl.Flush()
+
+	firstOutput := buf.String()
+
+	// Should use lowercase labels
+	if !bytes.Contains([]byte(firstOutput), []byte("name")) {
+		t.Errorf("expected lowercase 'name' header, got: %q", firstOutput)
+	}
+
+	// Clear and write again
+	buf.Reset()
+	tbl.Clear()
+	tbl.Write(server{Name: "test2", Status: "ok", Port: 81})
+	tbl.Flush()
+
+	secondOutput := buf.String()
+
+	// Should still use lowercase labels (configuration preserved)
+	if !bytes.Contains([]byte(secondOutput), []byte("name")) {
+		t.Errorf("expected lowercase 'name' header after Clear, got: %q", secondOutput)
 	}
 }
