@@ -12,6 +12,26 @@
 
 Example: `fix: correct WithColor nil check and package comment typo`
 
+## Development Workflow
+
+**Before committing any code changes:**
+1. Run `make test` to ensure all tests pass
+2. Run `make lint` to check for linting issues
+3. Fix any linter errors before committing
+
+The project uses golangci-lint with 50+ enabled linters including:
+- Style checkers (wsl_v5, whitespace, nlreturn)
+- Code quality (gocritic, revive, staticcheck)
+- Security (gosec)
+- Performance (mirror, perfsprint)
+- Best practices (errchkjson, errorlint, nilerr)
+
+Common linter fixes:
+- Use `strings.Contains(str, "text")` instead of `bytes.Contains([]byte(str), []byte("text"))`
+- Always handle errors: `_ = func()` or `if err := func(); err != nil`
+- Add blank lines after variable declarations and between logical blocks
+- Replace simple lambdas with direct function references when possible
+
 ## Build, Test, and Lint Commands
 
 This project uses a custom build system via `endobit.io/builder` with Makefile targets:
