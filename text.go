@@ -140,10 +140,11 @@ func (t *Table) flush(info []columnInfo, rows [][]cell) {
 				text = sgr.Wrap(t.colors.Repeat, text).String()
 			}
 
-			fmt.Fprint(t.writer, sgr.Wrap(rowColor, text, padding))
-
-			if j != len(rows[i])-1 { // skip column separator for the last column
-				fmt.Fprint(t.writer, " ")
+			// Skip padding for the last column
+			if j == len(rows[i])-1 {
+				fmt.Fprint(t.writer, sgr.Wrap(rowColor, text))
+			} else {
+				fmt.Fprint(t.writer, sgr.Wrap(rowColor, text, padding), " ")
 			}
 		}
 

@@ -79,16 +79,11 @@ func ExampleTable_Write() {
 	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
 	t.Flush()
 
-	// Trim trailing spaces from each line for cleaner output
-	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
-	for _, line := range lines {
-		fmt.Println(string(bytes.TrimRight(line, " ")))
-	}
+	fmt.Print(buf.String())
 	// Output:
 	// NAME  STATUS  PORT
 	// web-1 running 8080
 	// web-2 stopped 8081
-	//
 }
 
 func ExampleTable_Annotate() {
@@ -100,17 +95,12 @@ func ExampleTable_Annotate() {
 	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
 	t.Flush()
 
-	// Trim trailing spaces from each line for cleaner output
-	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
-	for _, line := range lines {
-		fmt.Println(string(bytes.TrimRight(line, " ")))
-	}
+	fmt.Print(buf.String())
 	// Output:
 	// NAME  STATUS  PORT
 	// web-1 running 8080
 	// --- maintenance window ---
 	// web-2 stopped 8081
-	//
 }
 
 func ExampleNewJSON() {
@@ -161,17 +151,9 @@ func ExampleNew_withCustomColors() {
 	t.Write(task{Name: "Write docs", Priority: 3})
 	t.Flush()
 
-	// Trim trailing spaces from each line for cleaner output
-	lines := bytes.Split(buf.Bytes(), []byte{'\n'})
-	for i, line := range lines {
-		fmt.Println(string(bytes.TrimRight(line, " ")))
-		if i < len(lines)-1 && len(line) > 0 {
-			// Don't print extra newline after last line
-		}
-	}
+	fmt.Print(buf.String())
 	// Output:
 	// NAME       PRIORITY
 	// Fix bug    8
 	// Write docs 3
 }
-

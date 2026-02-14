@@ -28,7 +28,7 @@ func Wrapf(p []Param, format string, a ...any) Wrapped {
 func wrap(p []Param, s string) Wrapped {
 	return Wrapped{
 		Text: s,
-		head: code(p),
+		head: code(p...),
 		tail: resetString,
 	}
 }

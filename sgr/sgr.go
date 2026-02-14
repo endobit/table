@@ -59,7 +59,7 @@ func (c Color) BG() Param {
 }
 
 // code returns the SGR escape sequence for the combined Params.
-func code(p []Param) string {
+func code(p ...Param) string {
 	if len(p) == 0 || noColor {
 		return ""
 	}
@@ -75,13 +75,13 @@ func code(p []Param) string {
 var (
 	noColor bool // https://no-color.org/
 
-	reset       = []Param{Reset}
-	resetString = code(reset)
+	//	reset       = []Param{Reset}
+	resetString = code(Reset)
 )
 
 func init() {
 	if s := os.Getenv("NO_COLOR"); s != "" {
-		noColor = true
+		DisableColor()
 	}
 }
 
