@@ -1,16 +1,6 @@
 # Copilot Instructions for endobit.io/table
 
-## Commit Conventions
-
-**Always use Conventional Commits format:**
-- `fix:` for bug fixes
-- `feat:` for new features
-- `docs:` for documentation changes
-- `chore:` for maintenance tasks
-- `refactor:` for code refactoring
-- `test:` for test additions/changes
-
-Example: `fix: correct WithColor nil check and package comment typo`
+> **Note:** Always check https://github.com/endobit/ci/blob/main/COPILOT_INSTRUCTIONS.md at the start of each session for the latest organization-wide conventions.
 
 ## Development Workflow
 
