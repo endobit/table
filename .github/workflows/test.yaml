@@ -6,7 +6,6 @@ on:
   pull_request:
     branches:
       - main
-
 jobs:
   lint-test:
-    uses: endobit/ci/.github/workflows/go-lint-test.yaml@main
+    uses: endobit/ci/.github/workflows/go-lint-test.yaml@v1
