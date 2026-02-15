@@ -6,7 +6,8 @@
 [![Codecov](https://codecov.io/gh/endobit/oui/branch/main/graph/badge.svg)](https://codecov.io/gh/endobit/table)
 [![Go Reference](https://pkg.go.dev/badge/github.com/endobit/table.svg)](https://pkg.go.dev/endobit.io/table)
 
-A Go package for rendering structs as column-aligned tables with optional ANSI color styling, or as JSON/YAML.
+A Go package for rendering structs as column-aligned tables with optional ANSI
+color styling, or as JSON/YAML.
 
 ## Features
 
@@ -16,7 +17,8 @@ A Go package for rendering structs as column-aligned tables with optional ANSI c
 - **Struct Tags**: Customize column headers and behavior with `table` tags
 - **Annotations**: Insert comments between table rows
 - **Custom Colors**: Apply custom ANSI styling via the `wrapper` interface
-- **Smart Defaults**: CamelCase field names convert to UPPERCASE_SNAKE_CASE headers
+- **Smart Defaults**: CamelCase field names convert to UPPERCASE_SNAKE_CASE
+  headers
 
 ## Installation
 
@@ -43,19 +45,20 @@ type server struct {
 
 func main() {
     t := table.New()
-    
+
     t.Write(server{Name: "web-1", Status: "running", Port: 8080})
     t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
-    
+
     _ = t.Flush()
 }
 ```
 
 Output:
+
 ```
 NAME  STATUS  PORT
-web-1 running 8080
 web-2 stopped 8081
+web-1 running 8080
 ```
 
 ### Struct Tags
