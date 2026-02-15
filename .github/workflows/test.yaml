@@ -1,4 +1,5 @@
-name: CI
+name: test
+
 on:
   push:
     branches:
@@ -6,7 +7,10 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
-  lint-test:
-    uses: endobit/ci/.github/workflows/go-lint-test.yaml@v1
+  lint:
+    uses: endobit/ci/.github/workflows/go-lint.yaml@main
+  test:
+    uses: endobit/ci/.github/workflows/go-test.yaml@main
     secrets: inherit
