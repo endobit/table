@@ -111,6 +111,31 @@ func ExampleTable_Annotate() {
 	// web-2 stopped 8081
 }
 
+func ExampleNew_asJSON() {
+	var buf bytes.Buffer
+
+	t := New(AsJSON(), WithWriter(&buf))
+
+	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	_ = t.Flush()
+
+	fmt.Print(buf.String())
+	// Output:
+	// [
+	//     {
+	//         "Name": "web-1",
+	//         "Status": "running",
+	//         "Port": 8080
+	//     },
+	//     {
+	//         "Name": "web-2",
+	//         "Status": "stopped",
+	//         "Port": 8081
+	//     }
+	// ]
+}
+
 func ExampleNewJSON() {
 	var buf bytes.Buffer
 
