@@ -207,7 +207,8 @@ func (t *Table) processHeader(header reflect.Type) []columnInfo {
 		}
 
 		if tag := field.Tag.Get("table"); tag != "" {
-			label, opts := parseTag(tag)
+			// Parse tag: "LABEL,omitempty" -> label="LABEL", omitEmpty=true
+			label, options, _ := strings.Cut(tag, ",")
 
 			if label != "" {
 				labels := strings.Split(label, "\n")
@@ -219,7 +220,7 @@ func (t *Table) processHeader(header reflect.Type) []columnInfo {
 				columns[i].Width = maxStringLength(labels)
 			}
 
-			columns[i].OmitEmpty = opts.Contains("omitempty")
+			columns[i].OmitEmpty = strings.Contains(options, "omitempty")
 		}
 	}
 

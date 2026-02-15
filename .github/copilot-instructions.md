@@ -71,9 +71,8 @@ The project uses golangci-lint with a custom configuration (`.golangci.yaml`) th
 ### Key Components
 
 - **table.go**: Main Table type with Write/Annotate/Flush methods
-- **text.go**: Text rendering with column alignment and ANSI styling
+- **text.go**: Text rendering with column alignment and ANSI styling (includes struct tag parsing)
 - **json.go/yaml.go**: Alternative output formats
-- **tags.go**: Struct tag parsing (copied from stdlib json package)
 - **sgr/**: Subpackage for ANSI Select Graphic Rendition escape sequences
   - **sgr.go**: Core SGR parameters and Wrap/Wrapped types
   - **wrap.go**: Text wrapping with ANSI codes, accounting for escape sequences in width calculations
