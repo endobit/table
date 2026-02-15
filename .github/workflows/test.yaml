@@ -9,3 +9,4 @@ on:
 jobs:
   lint-test:
     uses: endobit/ci/.github/workflows/go-lint-test.yaml@v1
+    secrets: inherit
