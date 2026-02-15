@@ -6,8 +6,8 @@
 [![Codecov](https://codecov.io/gh/endobit/oui/branch/main/graph/badge.svg)](https://codecov.io/gh/endobit/table)
 [![Go Reference](https://pkg.go.dev/badge/github.com/endobit/table.svg)](https://pkg.go.dev/endobit.io/table)
 
-A Go package for rendering structs as column-aligned tables with optional ANSI
-color styling, or as JSON/YAML.
+A Go package for rendering structs as column-aligned tables with optional ANSI color styling, or as
+JSON/YAML.
 
 ## Features
 
@@ -17,8 +17,7 @@ color styling, or as JSON/YAML.
 - **Struct Tags**: Customize column headers and behavior with `table` tags
 - **Annotations**: Insert comments between table rows
 - **Custom Colors**: Apply custom ANSI styling via the `wrapper` interface
-- **Smart Defaults**: CamelCase field names convert to UPPERCASE_SNAKE_CASE
-  headers
+- **Smart Defaults**: CamelCase field names convert to UPPERCASE_SNAKE_CASE headers
 
 ## Installation
 
@@ -57,8 +56,8 @@ Output:
 
 ```
 NAME  STATUS  PORT
-web-2 stopped 8081
 web-1 running 8080
+web-2 stopped 8081
 ```
 
 ### Struct Tags
@@ -67,11 +66,11 @@ Use the `table` tag to customize column headers or hide fields:
 
 ```go
 type host struct {
-    Zone    string `table:"ZONE"`              // Custom header
-    Cluster string `table:"CLUSTER"`
-    Host    string `table:"HOST"`
-    Rack    string `table:"RACK,omitempty"`    // Hide if all values are zero
-    Rank    int    `table:"RANK"`
+    Zone     string `table:"ZONE"`             // Custom header
+    Cluster  string `table:"CLUSTER"`
+    Host     string `table:"HOST"`
+    Rack     string `table:"RACK,omitempty"`   // Hide if all values are zero
+    Rank     int    `table:"RANK"`
     Internal string `table:"-"`                // Skip this field
 }
 ```
