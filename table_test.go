@@ -63,6 +63,7 @@ func TestCamelToUpperSnake(t *testing.T) {
 		{"URLValue", "URL_VALUE"},
 		{"MyHTTPServer2", "MY_HTTP_SERVER2"},
 		{"JSONParser", "JSON_PARSER"},
+		{"ΑΒΓΔε", "ΑΒΓ_ΔΕ"},
 		{"ÖffentlicheVerkehrsmittel", "ÖFFENTLICHE_VERKEHRSMITTEL"},
 		{"ПриветМир", "ПРИВЕТ_МИР"},
 		{"ΕλληνικάΚεφαλαία", "ΕΛΛΗΝΙΚΆ_ΚΕΦΑΛΑΊΑ"},
