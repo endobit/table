@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unicode/utf8"
 
 	"endobit.io/table/sgr"
 )
@@ -62,7 +63,7 @@ func (t *Table) FlushText() {
 				Value: value,
 			}
 
-			length := len(cell.Text)
+			length := utf8.RuneCountInString(cell.Text)
 
 			// If the value is a wrapper, use its Wrap() method to get the text
 			// and its length.
@@ -70,7 +71,7 @@ func (t *Table) FlushText() {
 				if a, ok := value.Interface().(wrapper); ok {
 					w := a.Wrap()
 
-					length = len(w.Text)
+					length = utf8.RuneCountInString(w.Text)
 					if t.noColor {
 						cell.Text = w.Text
 					}
@@ -130,7 +131,7 @@ func (t *Table) flush(info []columnInfo, rows [][]cell) {
 				}
 			}
 
-			padding := strings.Repeat(" ", info[j].Width-len(cell.Text))
+			padding := strings.Repeat(" ", info[j].Width-utf8.RuneCountInString(cell.Text))
 
 			switch {
 			case cell.Text == "":
@@ -203,7 +204,7 @@ func (t *Table) processHeader(header reflect.Type) []columnInfo {
 
 		columns[i] = columnInfo{
 			Labels: []string{label},
-			Width:  len(label),
+			Width:  utf8.RuneCountInString(label),
 		}
 
 		if tag := field.Tag.Get("table"); tag != "" {

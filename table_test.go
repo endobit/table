@@ -299,6 +299,26 @@ func TestSingleColumnTable(t *testing.T) {
 	}
 }
 
+func TestTextOutputAlignsUnicodeCells(t *testing.T) {
+	type row struct {
+		Name  string `table:"N"`
+		Value string `table:"V"`
+	}
+
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(row{Name: "é", Value: "one"})
+	tbl.Write(row{Name: "ab", Value: "two"})
+	_ = tbl.Flush()
+
+	const expected = "N  V  \né  one\nab two\n"
+	if output := buf.String(); output != expected {
+		t.Errorf("output = %q; want %q", output, expected)
+	}
+}
+
 func TestOmitEmptyColumns(t *testing.T) {
 	type record struct {
 		Name  string `table:"NAME"`
