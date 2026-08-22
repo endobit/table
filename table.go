@@ -115,7 +115,8 @@ func New(opts ...func(*Table)) *Table {
 // flushed if a new struct type is written. If a is not a struct, an error table
 // will be added to the output.
 func (t *Table) Write(a any) {
-	if reflect.TypeOf(a).Kind() != reflect.Struct {
+	typ := reflect.TypeOf(a)
+	if typ == nil || typ.Kind() != reflect.Struct {
 		msg := struct {
 			Error error
 			Type  string

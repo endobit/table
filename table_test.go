@@ -254,6 +254,21 @@ func TestWriteNonStruct(t *testing.T) {
 	}
 }
 
+func TestWriteNil(t *testing.T) {
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(nil)
+	_ = tbl.Flush()
+
+	output := buf.String()
+
+	if !strings.Contains(output, "not a struct") {
+		t.Errorf("expected error message in output, got: %q", output)
+	}
+}
+
 func TestEmptyTable(t *testing.T) {
 	var buf bytes.Buffer
 
