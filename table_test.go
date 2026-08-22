@@ -63,6 +63,7 @@ func TestCamelToUpperSnake(t *testing.T) {
 		{"URLValue", "URL_VALUE"},
 		{"MyHTTPServer2", "MY_HTTP_SERVER2"},
 		{"JSONParser", "JSON_PARSER"},
+		{"ΑΒΓΔε", "ΑΒΓ_ΔΕ"},
 		{"ÖffentlicheVerkehrsmittel", "ÖFFENTLICHE_VERKEHRSMITTEL"},
 		{"ПриветМир", "ПРИВЕТ_МИР"},
 		{"ΕλληνικάΚεφαλαία", "ΕΛΛΗΝΙΚΆ_ΚΕΦΑΛΑΊΑ"},
@@ -251,6 +252,21 @@ func TestWriteNonStruct(t *testing.T) {
 	// Should contain the ERROR header
 	if !strings.Contains(output, "ERROR") {
 		t.Errorf("expected ERROR header in output, got: %q", output)
+	}
+}
+
+func TestWriteNil(t *testing.T) {
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+
+	tbl.Write(nil)
+	_ = tbl.Flush()
+
+	output := buf.String()
+
+	if !strings.Contains(output, "not a struct") {
+		t.Errorf("expected error message in output, got: %q", output)
 	}
 }
 
@@ -581,6 +597,46 @@ func TestAnnotations(t *testing.T) {
 	// Annotation after flush should NOT appear in this output
 	if strings.Contains(output, "after flush") {
 		t.Errorf("unexpected annotation after flush, got: %q", output)
+	}
+}
+
+func TestAnnotationsAtTypeBoundary(t *testing.T) {
+	type first struct {
+		Name string
+	}
+
+	type second struct {
+		Value int
+	}
+
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+	tbl.Write(first{Name: "first"})
+	tbl.Annotate("between tables")
+	tbl.Write(second{Value: 2})
+	_ = tbl.Flush()
+
+	if output := buf.String(); !strings.Contains(output, "between tables") {
+		t.Errorf("expected boundary annotation, got: %q", output)
+	}
+}
+
+func TestMultipleAnnotationsAtSamePosition(t *testing.T) {
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+	tbl.Annotate("first annotation")
+	tbl.Annotate("second annotation")
+	tbl.Write(server{Name: "test"})
+	_ = tbl.Flush()
+
+	output := buf.String()
+	first := strings.Index(output, "first annotation")
+	second := strings.Index(output, "second annotation")
+
+	if first == -1 || second == -1 || first > second {
+		t.Errorf("expected ordered annotations, got: %q", output)
 	}
 }
 

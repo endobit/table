@@ -115,7 +115,8 @@ func New(opts ...func(*Table)) *Table {
 // flushed if a new struct type is written. If a is not a struct, an error table
 // will be added to the output.
 func (t *Table) Write(a any) {
-	if reflect.TypeOf(a).Kind() != reflect.Struct {
+	typ := reflect.TypeOf(a)
+	if typ == nil || typ.Kind() != reflect.Struct {
 		msg := struct {
 			Error error
 			Type  string
@@ -207,13 +208,14 @@ func camelToUpperSnake(s string) string {
 		prev rune
 	)
 
-	for i, r := range s {
+	runes := []rune(s)
+	for i, r := range runes {
 		if i > 0 {
 			// Insert underscore if:
 			// 1. transition from lower to upper (e.g., "camelCase")
 			// 2. transition from letter followed by upper+lower (e.g., "URLValue" -> "URL_Value")
 			if unicode.IsLower(prev) && unicode.IsUpper(r) ||
-				unicode.IsUpper(prev) && unicode.IsUpper(r) && i+1 < len(s) && unicode.IsLower(rune(s[i+1])) {
+				unicode.IsUpper(prev) && unicode.IsUpper(r) && i+1 < len(runes) && unicode.IsLower(runes[i+1]) {
 				b.WriteRune('_')
 			}
 		}
