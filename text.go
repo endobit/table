@@ -30,9 +30,11 @@ type wrapper interface {
 // applied.
 func (t *Table) FlushText() {
 	var (
-		prevType reflect.Type
-		columns  []columnInfo
-		cells    [][]cell
+		prevType          reflect.Type
+		columns           []columnInfo
+		cells             [][]cell
+		groupStart        int
+		includeGroupStart = true
 	)
 
 	// This is the first pass through the table to determine the column widths
@@ -46,8 +48,10 @@ func (t *Table) FlushText() {
 			prevType = currType
 
 			if columns != nil { // flush and reset for next table
-				t.flush(columns, cells)
+				t.flush(columns, cells, t.annotationsFor(groupStart, i, includeGroupStart))
 				cells = nil
+				groupStart = i
+				includeGroupStart = false
 			}
 
 			columns = t.processHeader(currType)
@@ -88,21 +92,16 @@ func (t *Table) FlushText() {
 		cells = append(cells, fields)
 	}
 
-	t.flush(columns, cells)
+	t.flush(columns, cells, t.annotationsFor(groupStart, len(t.rows), includeGroupStart))
 }
 
-func (t *Table) flush(info []columnInfo, rows [][]cell) {
+func (t *Table) flush(info []columnInfo, rows [][]cell, annotations []annotation) {
 	t.flushHeader(info, rows)
-
-	annotations := t.annotations
 
 	// This pass applies ANSI styles and prints the table rows.
 
 	for i := range rows {
-		if len(annotations) > 0 && annotations[0].index == i {
-			fmt.Fprintln(t.writer, sgr.Wrap(t.colors.Annotation, annotations[0].text))
-			annotations = annotations[1:] // remove the annotation
-		}
+		annotations = t.flushAnnotations(annotations, i)
 
 		var repeats []bool
 
@@ -151,6 +150,17 @@ func (t *Table) flush(info []columnInfo, rows [][]cell) {
 
 		fmt.Fprintln(t.writer)
 	}
+
+	t.flushAnnotations(annotations, len(rows))
+}
+
+func (t *Table) flushAnnotations(annotations []annotation, index int) []annotation {
+	for len(annotations) > 0 && annotations[0].index == index {
+		fmt.Fprintln(t.writer, sgr.Wrap(t.colors.Annotation, annotations[0].text))
+		annotations = annotations[1:]
+	}
+
+	return annotations
 }
 
 func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
@@ -191,6 +201,21 @@ func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
 	}
 
 	fmt.Fprintln(t.writer)
+}
+
+func (t *Table) annotationsFor(start, end int, includeStart bool) []annotation {
+	var annotations []annotation
+
+	for _, a := range t.annotations {
+		if a.index > end || (!includeStart && a.index == start) || a.index < start {
+			continue
+		}
+
+		a.index -= start
+		annotations = append(annotations, a)
+	}
+
+	return annotations
 }
 
 func (t *Table) processHeader(header reflect.Type) []columnInfo {
