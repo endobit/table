@@ -551,6 +551,46 @@ func TestAnnotations(t *testing.T) {
 	}
 }
 
+func TestAnnotationsAtTypeBoundary(t *testing.T) {
+	type first struct {
+		Name string
+	}
+
+	type second struct {
+		Value int
+	}
+
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+	tbl.Write(first{Name: "first"})
+	tbl.Annotate("between tables")
+	tbl.Write(second{Value: 2})
+	_ = tbl.Flush()
+
+	if output := buf.String(); !strings.Contains(output, "between tables") {
+		t.Errorf("expected boundary annotation, got: %q", output)
+	}
+}
+
+func TestMultipleAnnotationsAtSamePosition(t *testing.T) {
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+	tbl.Annotate("first annotation")
+	tbl.Annotate("second annotation")
+	tbl.Write(server{Name: "test"})
+	_ = tbl.Flush()
+
+	output := buf.String()
+	first := strings.Index(output, "first annotation")
+	second := strings.Index(output, "second annotation")
+
+	if first == -1 || second == -1 || first > second {
+		t.Errorf("expected ordered annotations, got: %q", output)
+	}
+}
+
 func TestClear(t *testing.T) {
 	var buf bytes.Buffer
 
