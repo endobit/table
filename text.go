@@ -19,6 +19,7 @@ type columnInfo struct {
 	Width     int
 	OmitEmpty bool
 	IsZero    bool
+	Skip      bool
 }
 
 type wrapper interface {
@@ -113,7 +114,7 @@ func (t *Table) flush(info []columnInfo, rows [][]cell) {
 		}
 
 		for j := range rows[i] {
-			if info[j].IsZero { // skip empty columns TODO: make this configurable
+			if !info[j].visible() { // skip empty columns TODO: make this configurable
 				continue
 			}
 
@@ -142,7 +143,7 @@ func (t *Table) flush(info []columnInfo, rows [][]cell) {
 			}
 
 			// Skip padding for the last column
-			if j == len(rows[i])-1 {
+			if j == lastVisibleColumn(info) {
 				fmt.Fprint(t.writer, sgr.Wrap(rowColor, text))
 			} else {
 				fmt.Fprint(t.writer, sgr.Wrap(rowColor, text, padding), " ")
@@ -164,6 +165,14 @@ func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
 		}
 	}
 
+	for j := range info {
+		if info[j].OmitEmpty && isColumnZero(j, rows) {
+			info[j].IsZero = true
+		}
+	}
+
+	lastColumn := lastVisibleColumn(info)
+
 	for i := range numLines {
 		if i > 0 {
 			fmt.Fprintln(t.writer)
@@ -172,9 +181,7 @@ func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
 		for j := range info { // header
 			var label string
 
-			if info[j].OmitEmpty && isColumnZero(j, rows) {
-				info[j].IsZero = true
-
+			if !info[j].visible() {
 				continue
 			}
 
@@ -184,13 +191,27 @@ func (t *Table) flushHeader(info []columnInfo, rows [][]cell) {
 
 			fmt.Fprint(t.writer, sgr.Wrapf(t.colors.Header, "%-*s", info[j].Width, label))
 
-			if j != len(info)-1 {
+			if j != lastColumn {
 				fmt.Fprint(t.writer, " ")
 			}
 		}
 	}
 
 	fmt.Fprintln(t.writer)
+}
+
+func lastVisibleColumn(info []columnInfo) int {
+	for i := len(info) - 1; i >= 0; i-- {
+		if info[i].visible() {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func (c columnInfo) visible() bool {
+	return !c.IsZero && !c.Skip
 }
 
 func (t *Table) processHeader(header reflect.Type) []columnInfo {
@@ -210,6 +231,12 @@ func (t *Table) processHeader(header reflect.Type) []columnInfo {
 		if tag := field.Tag.Get("table"); tag != "" {
 			// Parse tag: "LABEL,omitempty" -> label="LABEL", omitEmpty=true
 			label, options, _ := strings.Cut(tag, ",")
+
+			if label == "-" {
+				columns[i].Skip = true
+
+				continue
+			}
 
 			if label != "" {
 				labels := strings.Split(label, "\n")

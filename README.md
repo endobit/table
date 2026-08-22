@@ -75,6 +75,8 @@ type host struct {
 }
 ```
 
+These tags affect text table output only. JSON and YAML output encode the original structs.
+
 ### Annotations
 
 Insert comments or context between rows:
