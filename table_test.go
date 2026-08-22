@@ -366,6 +366,55 @@ func TestOmitEmptyColumns(t *testing.T) {
 	}
 }
 
+func TestSkipField(t *testing.T) {
+	type record struct {
+		Name   string
+		Secret string `table:"-"`
+	}
+
+	var buf bytes.Buffer
+
+	tbl := New(WithWriter(&buf))
+	tbl.Write(record{Name: "text-visible", Secret: "hidden"})
+	_ = tbl.Flush()
+
+	output := buf.String()
+	if strings.Contains(output, "SECRET") || strings.Contains(output, "hidden") {
+		t.Errorf("expected skipped field to be omitted, got: %q", output)
+	}
+}
+
+func TestSkipFieldDoesNotAffectStructuredOutput(t *testing.T) {
+	type record struct {
+		Name   string
+		Secret string `table:"-"`
+	}
+
+	t.Run("JSON", func(t *testing.T) {
+		var buf bytes.Buffer
+
+		tbl := NewJSON(WithWriter(&buf))
+		tbl.Write(record{Name: "json-visible", Secret: "included"})
+		_ = tbl.Flush()
+
+		if output := buf.String(); !strings.Contains(output, `"Secret": "included"`) {
+			t.Errorf("expected skipped field in JSON output, got: %q", output)
+		}
+	})
+
+	t.Run("YAML", func(t *testing.T) {
+		var buf bytes.Buffer
+
+		tbl := NewYAML(WithWriter(&buf))
+		tbl.Write(record{Name: "yaml-visible", Secret: "included"})
+		_ = tbl.Flush()
+
+		if output := buf.String(); !strings.Contains(output, "secret: included") {
+			t.Errorf("expected skipped field in YAML output, got: %q", output)
+		}
+	})
+}
+
 func TestWrapperInterface(t *testing.T) {
 	type status string
 
