@@ -35,12 +35,22 @@ type host struct {
 	Slot    int    `table:"SLOT,omitempty"`
 }
 
+const (
+	eastZone      = "east"
+	prodCluster   = "prod"
+	webOneName    = "web-1"
+	webTwoName    = "web-2"
+	runningStatus = "running"
+	stoppedStatus = "stopped"
+	testName      = "test"
+)
+
 func TestYAML(_ *testing.T) {
 	w := New()
-	w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-0", Rack: "0", Rank: 0})
-	w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-1", Rack: "0", Rank: 1})
-	w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-2", Rack: "0", Rank: 2})
-	w.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-3", Rack: "0", Rank: 3})
+	w.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-0", Rack: "0", Rank: 0})
+	w.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-1", Rack: "0", Rank: 1})
+	w.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-2", Rack: "0", Rank: 2})
+	w.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-3", Rack: "0", Rank: 3})
 	_ = w.Flush()
 }
 
@@ -82,8 +92,8 @@ func ExampleTable_Write() {
 
 	t := New(WithWriter(&buf))
 
-	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
-	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
+	t.Write(server{Name: webTwoName, Status: stoppedStatus, Port: 8081})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -98,9 +108,9 @@ func ExampleTable_Annotate() {
 
 	t := New(WithWriter(&buf))
 
-	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
 	t.Annotate("--- maintenance window ---")
-	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Write(server{Name: webTwoName, Status: stoppedStatus, Port: 8081})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -116,8 +126,8 @@ func ExampleNew_asJSON() {
 
 	t := New(AsJSON(), WithWriter(&buf))
 
-	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
-	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
+	t.Write(server{Name: webTwoName, Status: stoppedStatus, Port: 8081})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -141,8 +151,8 @@ func ExampleNewJSON() {
 
 	t := NewJSON(WithWriter(&buf))
 
-	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
-	t.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	t.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
+	t.Write(server{Name: webTwoName, Status: stoppedStatus, Port: 8081})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -200,7 +210,7 @@ func ExampleTable_Clear() {
 	t := New(WithWriter(&buf))
 
 	// First batch of data
-	t.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	t.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -210,7 +220,7 @@ func ExampleTable_Clear() {
 	t.Clear()
 
 	// Second batch of data
-	t.Write(server{Name: "api-1", Status: "running", Port: 9000})
+	t.Write(server{Name: "api-1", Status: runningStatus, Port: 9000})
 	_ = t.Flush()
 
 	fmt.Print(buf.String())
@@ -352,7 +362,7 @@ func TestWrapperInterface(t *testing.T) {
 
 	tbl := New(WithWriter(&buf))
 
-	tbl.Write(item{Name: "test", Rank: 5})
+	tbl.Write(item{Name: testName, Rank: 5})
 	_ = tbl.Flush()
 
 	output := buf.String()
@@ -459,7 +469,7 @@ func TestMultipleTableTypes(t *testing.T) {
 	tbl := New(WithWriter(&buf))
 
 	// Write first type
-	tbl.Write(typeA{Name: "test"})
+	tbl.Write(typeA{Name: testName})
 	// Write different type - should flush first table
 	tbl.Write(typeB{Value: 42})
 	_ = tbl.Flush()
@@ -482,9 +492,9 @@ func TestAnnotations(t *testing.T) {
 	tbl := New(WithWriter(&buf))
 
 	tbl.Annotate("before any rows")
-	tbl.Write(server{Name: "web-1", Status: "running", Port: 8080})
+	tbl.Write(server{Name: webOneName, Status: runningStatus, Port: 8080})
 	tbl.Annotate("middle annotation")
-	tbl.Write(server{Name: "web-2", Status: "stopped", Port: 8081})
+	tbl.Write(server{Name: webTwoName, Status: stoppedStatus, Port: 8081})
 	_ = tbl.Flush()
 
 	tbl.Annotate("after flush - should appear in next table")

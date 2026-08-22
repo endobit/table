@@ -25,13 +25,18 @@ type host struct {
 	Slot    string `table:"SLOT,omitempty"`
 }
 
+const (
+	eastZone    = "east"
+	prodCluster = "prod"
+)
+
 func main() {
 	t := table.New()
-	t.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-0", Rack: "0", Rank: 0})
-	t.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-1", Rack: "0", Rank: 1})
-	t.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-2", Rack: "0", Rank: 2})
+	t.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-0", Rack: "0", Rank: 0})
+	t.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-1", Rack: "0", Rank: 1})
+	t.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-2", Rack: "0", Rank: 2})
 	t.Annotate("inline annotation")
-	t.Write(host{Zone: "east", Cluster: "prod", Host: "compute-0-3", Rack: "0", Rank: 3})
+	t.Write(host{Zone: eastZone, Cluster: prodCluster, Host: "compute-0-3", Rack: "0", Rank: 3})
 	_ = t.Flush()
 
 	fmt.Println()
