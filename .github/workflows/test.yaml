@@ -10,7 +10,7 @@ on:
 
 jobs:
   lint:
-    uses: endobit/ci/.github/workflows/go-lint.yaml@v1.3.1
+    uses: endobit/ci/.github/workflows/go-lint.yaml@v1.3.2
   test:
-    uses: endobit/ci/.github/workflows/go-test.yaml@v1.3.1
+    uses: endobit/ci/.github/workflows/go-test.yaml@v1.3.2
     secrets: inherit
