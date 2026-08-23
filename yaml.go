@@ -4,7 +4,7 @@ import "github.com/goccy/go-yaml"
 
 // AsYAML is an option setting function for New. It sets YAML as the default
 // output format for Flush.
-func AsYAML() func(*Table) {
+func AsYAML() Option {
 	return func(t *Table) {
 		t.style = yamlOutput
 	}
@@ -13,8 +13,8 @@ func AsYAML() func(*Table) {
 // NewYAML returns a Table with YAML as the default for Flush.
 //
 // Deprecated: Use New(AsYAML()) instead.
-func NewYAML(opts ...func(*Table)) *Table {
-	opts = append([]func(*Table){AsYAML()}, opts...)
+func NewYAML(opts ...Option) *Table {
+	opts = append([]Option{AsYAML()}, opts...)
 
 	return New(opts...)
 }

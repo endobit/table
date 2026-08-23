@@ -51,6 +51,8 @@ type Table struct {
 	fieldToLabel func(string) string
 }
 
+type Option func(*Table)
+
 type annotation struct {
 	index int
 	text  string
@@ -58,7 +60,7 @@ type annotation struct {
 
 // WithColor is an option setting function for New. It replaces the default set
 // of Colors with c.
-func WithColor(c *Colors) func(*Table) {
+func WithColor(c *Colors) Option {
 	return func(t *Table) {
 		if c != nil {
 			t.colors = *c
@@ -68,7 +70,7 @@ func WithColor(c *Colors) func(*Table) {
 
 // WithWriter is an option setting function for New. It replaces the default
 // io.Writer with w. The io.Writer is used for all Table output.
-func WithWriter(w io.Writer) func(*Table) {
+func WithWriter(w io.Writer) Option {
 	return func(t *Table) {
 		t.writer = w
 	}
@@ -78,7 +80,7 @@ func WithWriter(w io.Writer) func(*Table) {
 // convert struct field names into text header labels. The default behavior is
 // to convert the CamelCase field names into UPPER_CASE labels. The "table"
 // struct tags can be used to override this.
-func WithLabelFunction(fn func(string) string) func(*Table) {
+func WithLabelFunction(fn func(string) string) Option {
 	return func(t *Table) {
 		t.fieldToLabel = fn
 	}
@@ -87,7 +89,7 @@ func WithLabelFunction(fn func(string) string) func(*Table) {
 // New returns a new Table. The default settings can be overridden using the
 // With* options setting functions. For example: WithColors() can be used to
 // replace the default coloring scheme.
-func New(opts ...func(*Table)) *Table {
+func New(opts ...Option) *Table {
 	t := Table{
 		writer: os.Stdout,
 		colors: Colors{
